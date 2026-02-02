@@ -4,139 +4,146 @@ class Calculator {
         this.previousOperand = '';
         this.operation = null;
         this.waitingForNewOperand = false;
-
         this.display = document.getElementById('display');
-        this.prevDisplay = document.querySelector('.previous-operand');
-
         this.buttons = document.querySelectorAll('button[data-value], button[data-action]');
         this.bindEvents();
         this.updateDisplay();
     }
 
     bindEvents() {
-        this.buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const { value, action } = btn.dataset;
-                if (value !== undefined) this.inputDigit(value);
-                if (action) this.handleAction(action);
+        this.buttons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const { value, action } = e.target.dataset;
+                if (value) this.inputDigit(value);
+                else if (action) this.handleAction(action);
             });
         });
     }
 
-    /* ---------------- INPUT ---------------- */
-
     inputDigit(digit) {
-        if (digit === '.' && this.currentOperand.includes('.')) return;
-
         if (this.waitingForNewOperand) {
             this.currentOperand = digit;
             this.waitingForNewOperand = false;
         } else {
-            this.currentOperand =
-                this.currentOperand === '0' ? digit : this.currentOperand + digit;
+            this.currentOperand = this.currentOperand === '0' ? digit : this.currentOperand + digit;
         }
         this.updateDisplay();
     }
-
-    /* ---------------- ACTIONS ---------------- */
 
     handleAction(action) {
-        switch (action) {
-            case 'clear': return this.clear();
-            case 'delete': return this.backspace();
-            case 'equals': return this.calculate();
-            case 'square': return this.square();
-            case 'cube': return this.cube();
-            case 'sqrt': return this.sqrt();
-            case 'power': return this.setOperation('power');
-            case 'addition': return this.setOperation('+');
-            case 'subtract': return this.setOperation('-');
-            case 'multiply': return this.setOperation('*');
-            case 'divide': return this.setOperation('/');
+        switch(action) {
+            case 'clear': this.clear(); break;
+            case 'delete': this.delete(); break;
+            case 'equals': this.calculate(); break;
+            case 'square': this.square(); break;
+            case 'cube': this.cube(); break;
+            case 'sqrt': this.sqrt(); break;
+            case 'power': this.power(); break;
+            default: this.setOperation(action); break;
         }
     }
 
-    setOperation(op) {
-        if (!this.waitingForNewOperand) this.calculate();
+    // Pure arithmetic functions
+    add(a, b) { return a + b; }
+    subtract(a, b) { return a - b; }
+    multiply(a, b) { return a * b; }
+    divide(a, b) { return b !== 0 ? a / b : 'Error'; }
 
-        this.operation = op;
-        this.previousOperand = this.currentOperand;
-        this.waitingForNewOperand = true;
-        this.updateDisplay();
-    }
-
-    /* ---------------- CALCULATION ---------------- */
-
-    calculate() {
-        if (!this.operation || this.previousOperand === '') return;
-
-        const prev = parseFloat(this.previousOperand);
-        const curr = parseFloat(this.currentOperand);
-        let result;
-
-        switch (this.operation) {
-            case '+': result = prev + curr; break;
-            case '-': result = prev - curr; break;
-            case '*': result = prev * curr; break;
-            case '/': result = curr === 0 ? 'Error' : prev / curr; break;
-            case 'power': result = Math.pow(prev, curr); break;
-            default: return;
-        }
-
-        this.currentOperand = result.toString();
-        this.previousOperand = '';
-        this.operation = null;
-        this.waitingForNewOperand = true;
-        this.updateDisplay();
-    }
-
-    /* ---------------- ADVANCED ---------------- */
-
+    // Advanced functions
     square() {
-        this.currentOperand = (Math.pow(+this.currentOperand, 2)).toString();
-        this.updateDisplay();
+        const num = parseFloat(this.currentOperand);
+        if (!isNaN(num)) {
+            this.currentOperand = (num * num).toString();
+            this.updateDisplay();
+        }
     }
 
     cube() {
-        this.currentOperand = (Math.pow(+this.currentOperand, 3)).toString();
-        this.updateDisplay();
+        const num = parseFloat(this.currentOperand);
+        if (!isNaN(num)) {
+            this.currentOperand = (num * num * num).toString();
+            this.updateDisplay();
+        }
     }
 
     sqrt() {
-        const n = +this.currentOperand;
-        this.currentOperand = n < 0 ? 'Error' : Math.sqrt(n).toString();
-        this.updateDisplay();
+        const num = parseFloat(this.currentOperand);
+        if (!isNaN(num) && num >= 0) {
+            this.currentOperand = Math.sqrt(num).toString();
+            this.updateDisplay();
+        } else {
+            this.currentOperand = 'Error';
+            this.updateDisplay();
+        }
     }
 
-    /* ---------------- UTILS ---------------- */
+    power() {
+        if (this.operation) this.calculate();
+        this.operation = 'power';
+        this.previousOperand = this.currentOperand;
+        this.waitingForNewOperand = true;
+    }
+
+    setOperation(nextOperation) {
+        if (this.operation && !this.waitingForNewOperand) {
+            this.calculate();
+        }
+        this.operation = nextOperation;
+        this.previousOperand = this.currentOperand;
+        this.waitingForNewOperand = true;
+    }
+
+    calculate() {
+        if (!this.operation || !this.previousOperand || !this.currentOperand) return;
+        const prev = parseFloat(this.previousOperand);
+        const current = parseFloat(this.currentOperand);
+        if (isNaN(prev) || isNaN(current)) return;
+        let result;
+        switch(this.operation) {
+            case 'addition': result = this.add(prev, current); break;
+            case 'subtract': result = this.subtract(prev, current); break;
+            case 'multiply': result = this.multiply(prev, current); break;
+            case 'divide': result = this.divide(prev, current); break;
+            case 'power': result = Math.pow(prev, current); break;
+            default: return;
+        }
+        this.currentOperand = isNaN(result) || result === 'Error' ? 'Error' : result.toString();
+        this.operation = null;
+        this.previousOperand = '';
+        this.waitingForNewOperand = true;
+        this.updateDisplay();
+    }
 
     clear() {
         this.currentOperand = '0';
         this.previousOperand = '';
         this.operation = null;
         this.waitingForNewOperand = false;
-        this.updateDisplay();
     }
 
-    backspace() {
-        this.currentOperand =
-            this.currentOperand.length > 1
-                ? this.currentOperand.slice(0, -1)
-                : '0';
+    delete() {
+        this.currentOperand = this.currentOperand.slice(0, -1) || '0';
         this.updateDisplay();
     }
 
     updateDisplay() {
         this.display.textContent = this.currentOperand;
-        this.prevDisplay.textContent =
-            this.previousOperand && this.operation
-                ? `${this.previousOperand} ${this.getSymbol()}`
-                : '';
+        const prevDisplay = document.querySelector('.previous-operand');
+        prevDisplay.textContent = (this.previousOperand && this.operation) ? `${this.previousOperand} ${this.getOperationSymbol()}` : '';
     }
 
-    getSymbol() {
-        return { '+': '+', '-': '−', '*': '×', '/': '÷', 'power': '^' }[this.operation] || '';
+    getOperationSymbol() {
+        const symbols = {
+            'addition': '+',
+            'subtract': '−',
+            'multiply': '×',
+            'divide': '÷'
+        };
+        return symbols[this.operation] || '';
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => new Calculator());
+// Initialize after DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    new Calculator();
+});
